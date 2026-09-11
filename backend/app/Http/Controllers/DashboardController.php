@@ -59,6 +59,7 @@ class DashboardController extends Controller
             'dueCounts' => $dueCounts,
             'incomeVsExpense' => $this->incomeVsExpense($user, $now),
             'expenseByCategory' => $this->expenseByCategory($user, $monthStart, $monthEnd),
+            'activityByCategory' => $this->activityByCategory($user, $monthStart, $monthEnd),
             'budgets' => $this->budgets($user, $monthStart, $monthEnd),
             'recentTransactions' => $this->recentTransactions($user),
         ]);
@@ -97,6 +98,43 @@ class DashboardController extends Controller
                 'icon' => $row->category->icon,
                 'total' => (float) $row->total,
             ])
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+    }
+
+    private function activityByCategory($user, Carbon $monthStart, Carbon $monthEnd): array
+    {
+        $expenses = $user->expenses()
+            ->whereBetween('spent_on', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->with('category:id,name,color,icon')
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->get()
+            ->map(fn ($row) => [
+                'name' => $row->category?->name,
+                'color' => $row->category?->color ?? '#f43f5e',
+                'icon' => $row->category?->icon ?? 'tag',
+                'type' => 'expense',
+                'total' => (float) $row->total,
+            ]);
+
+        $incomes = $user->incomes()
+            ->whereBetween('received_on', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->with('category:id,name,color,icon')
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->get()
+            ->map(fn ($row) => [
+                'name' => $row->category?->name,
+                'color' => $row->category?->color ?? '#10b981',
+                'icon' => $row->category?->icon ?? 'wallet',
+                'type' => 'income',
+                'total' => (float) $row->total,
+            ]);
+
+        return $expenses->concat($incomes)
+            ->filter(fn ($row) => $row['name'] !== null)
             ->sortByDesc('total')
             ->values()
             ->all();

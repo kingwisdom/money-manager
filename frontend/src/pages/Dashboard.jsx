@@ -18,6 +18,7 @@ import CategoryIcon from '../components/CategoryIcon';
 import EmptyState from '../components/EmptyState';
 import IncomeExpenseChart from '../components/charts/IncomeExpenseChart';
 import DonutChart from '../components/charts/DonutChart';
+import ActivityChart from '../components/charts/ActivityChart';
 import { formatMoney, formatMoneyShort } from '../helpers/money';
 import { formatDate } from '../helpers/dates';
 import { useApp } from '../context/AppContext';
@@ -58,7 +59,7 @@ export default function Dashboard() {
         );
     }
 
-    const { month, upcomingBills, dueCounts, incomeVsExpense, expenseByCategory, budgets, recentTransactions } = data;
+    const { month, upcomingBills, dueCounts, incomeVsExpense, expenseByCategory, activityByCategory, budgets, recentTransactions } = data;
 
     const surplus = Number(month.surplus);
     const billsTotal = Number(month.bills_total);
@@ -313,7 +314,18 @@ export default function Dashboard() {
                     </motion.div>
 
                     <motion.div {...fade(6)} className="card p-6 lg:col-span-2">
-                        <h2 className="mb-5 text-lg font-bold text-white">Recent activity</h2>
+                        <div className="mb-5 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-white">Recent activity</h2>
+                            <span className="text-xs text-slate-500">{month.label}</span>
+                        </div>
+
+                        {activityByCategory?.length > 0 && (
+                            <div className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                                <p className="mb-4 text-sm font-semibold text-white">Activity by category</p>
+                                <ActivityChart data={activityByCategory} />
+                            </div>
+                        )}
+
                         {recentTransactions.length === 0 ? (
                             <EmptyState
                                 icon="tag"
